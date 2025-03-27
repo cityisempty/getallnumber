@@ -61,37 +61,52 @@ export default function Home() {
     fetchNumbers(nextPage, true);
   };
 
-  const handleSearch = () => {
-    setPage(1);
-    fetchNumbers(1, false);
-  };
+  // 添加新的状态来存储11个位置的输入值
+  const [digitInputs, setDigitInputs] = useState<string[]>(Array(11).fill(''));
 
-  // 修改类型点击处理函数
-  const handleTypeClick = (type: string) => {
-    // 先保存新的类型状态
-    let newTypes: string[];
+  // 处理单个位置的输入变化
+  const handleDigitChange = (index: number, value: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDigits = [...digitInputs];
+    // 只允许输入数字，且最多一位
+    const newValue = value.replace(/\D/g, '').slice(0, 1);
+    newDigits[index] = newValue;
+    setDigitInputs(newDigits);
     
-    // 如果已经选择了该类型，则清空所有选择
-    if (selectedTypes.includes(type)) {
-      newTypes = [];
-    } else {
-      // 否则，设置为仅选择该类型
-      newTypes = [type];
+    // 如果输入了有效数字且不是最后一个输入框，自动跳转到下一个
+    if (newValue && index < 10) {
+      // 获取所有输入框
+      const inputs = document.querySelectorAll('input[type="text"]');
+      // 聚焦下一个输入框
+      if (inputs[index + 1]) {
+        (inputs[index + 1] as HTMLInputElement).focus();
+      }
     }
-    
-    // 更新状态
-    setSelectedTypes(newTypes);
-    
-    // 直接使用新的类型值执行搜索，而不是依赖状态更新
-    setPage(1);
-    fetchNumbers(1, false, newTypes);
   };
 
-  // 修改 fetchNumbers 函数，添加可选参数
+  // 生成搜索参数
+  const generateSearchParam = () => {
+    return digitInputs.map(digit => digit || '_').join('');
+  };
+
+  // 修改搜索处理函数
+  // 修改搜索处理函数
+  const handleSearch = () => {
+    const param = generateSearchParam();
+    
+    // 清空类型选择
+    setSelectedTypes([]);
+    
+    setSearchParam(param);
+    setPage(1);
+    fetchNumbers(1, false, [], param);
+  };
+
+  // 修改 fetchNumbers 函数，添加搜索参数参数
   const fetchNumbers = async (
     pageNum: number, 
     isLoadMore: boolean = false,
-    typesToUse: string[] = selectedTypes
+    typesToUse: string[] = selectedTypes,
+    searchParamToUse: string = searchParam
   ) => {
     try {
       setLoading(true);
@@ -99,7 +114,7 @@ export default function Home() {
         "/api/numbers", // 使用本地 API 路由
         {
           loadMore: isLoadMore,
-          parameter: searchParam,
+          parameter: searchParamToUse,
           typeList: typesToUse, // 使用传入的类型列表
           page: pageNum,
         }
@@ -137,6 +152,32 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+
+// 修改类型点击处理函数
+const handleTypeClick = (type: string) => {
+  // 先保存新的类型状态
+  let newTypes: string[];
+  
+  // 如果已经选择了该类型，则清空所有选择
+  if (selectedTypes.includes(type)) {
+    newTypes = [];
+  } else {
+    // 否则，设置为仅选择该类型
+    newTypes = [type];
+  }
+  
+  // 更新状态
+  setSelectedTypes(newTypes);
+  
+  // 清空输入框
+  setDigitInputs(Array(11).fill(''));
+  setSearchParam('');
+  
+  // 直接使用新的类型值执行搜索，不使用输入框的值
+  setPage(1);
+  fetchNumbers(1, false, newTypes, '');
+};
 
   const numberPatterns = [
     { id: "AABB", label: "AABB" },
@@ -186,52 +227,46 @@ export default function Home() {
       {/* 搜索区域 */}
       <div className="w-full p-4 bg-white rounded-lg shadow-sm mb-4 mt-2">
         <div className="mb-4">
-          <h2 className="text-lg font-medium mb-2">请输入您想要号码的部分或全部</h2>
-          <div className="flex">
-            <input
-              type="text"
-              value={searchParam}
-              onChange={(e) => setSearchParam(e.target.value)}
-              className="flex-1 border border-gray-300 rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
-              placeholder="输入号码"
-            />
+          <h2 className="text-lg font-medium mb-2">请输入您想要的号码</h2>
+          
+          {/* 数字输入框 */}
+          <div className="flex items-center mb-4">
+            {Array.from({ length: 11 }, (_, i) => (
+              <input
+                key={i}
+                type="text"
+                value={digitInputs[i]}
+                onChange={(e) => handleDigitChange(i, e.target.value, e)}
+                className="w-8 h-10 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder={(i+1).toString()}
+                maxLength={1}
+              />
+            ))}
+            
             <button
               onClick={handleSearch}
-              className="bg-red-500 text-white px-6 py-2 rounded-r-lg hover:bg-red-600 transition"
+              className="h-10 bg-red-500 text-white px-2  rounded-lg hover:bg-red-600 transition ml-1 text-xs"
             >
               搜索
             </button>
           </div>
-        </div>
 
-        {/* 数字选择器 */}
-        <div className="grid grid-cols-11 gap-1 mb-4">
-          {Array.from({ length: 11 }, (_, i) => i + 1).map((num) => (
-            <button
-              key={num}
-              className="border border-gray-300 rounded p-2 text-center hover:bg-gray-100"
-              onClick={() => setSearchParam(searchParam + num)}
-            >
-              {num}
-            </button>
-          ))}
-        </div>
-
-        {/* 号码类型选择 */}
-        <div className="flex flex-wrap gap-2">
-          {numberPatterns.map((pattern) => (
-            <button
-              key={pattern.id}
-              className={`px-3 py-1 rounded-full text-sm ${
-                selectedTypes.includes(pattern.id)
-                  ? "bg-red-500 text-white"
-                  : "bg-red-100 text-red-500 border border-red-200"
-              }`}
-              onClick={() => handleTypeClick(pattern.id)}
-            >
-              {pattern.label}
-            </button>
-          ))}
+          {/* 号码类型选择 */}
+          <div className="flex flex-wrap gap-2">
+            {numberPatterns.map((pattern) => (
+              <button
+                key={pattern.id}
+                className={`px-3 py-1 rounded-full text-sm ${
+                  selectedTypes.includes(pattern.id)
+                    ? "bg-red-500 text-white"
+                    : "bg-red-100 text-red-500 border border-red-200"
+                }`}
+                onClick={() => handleTypeClick(pattern.id)}
+              >
+                {pattern.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -281,3 +316,4 @@ export default function Home() {
     </main>
   );
 }
+
