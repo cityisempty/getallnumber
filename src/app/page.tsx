@@ -187,13 +187,13 @@ const handleTypeClick = (type: string) => {
     { id: "ABCABC", label: "ABCABC" },
     { id: "爱情号", label: "爱情号" },
     { id: "学霸号", label: "学霸号" },
-    { id: "FEE59", label: "保底59" },
-    { id: "FEE99", label: "保底99" },
-    { id: "FEE199", label: "保底199" },
-    { id: "FEE299", label: "保底299" },
-    { id: "FEE399", label: "保底399" },
-    { id: "CAR", label: "车牌号" },
-    { id: "FAMILY", label: "三口之家" },
+    { id: "保底59", label: "保底59" },
+    { id: "保底99", label: "保底99" },
+    { id: "保底199", label: "保底199" },
+    { id: "保底299", label: "保底299" },
+    { id: "保底399", label: "保底399" },
+    { id: "车牌号", label: "车牌号" },
+    { id: "三口之家", label: "三口之家" },
   ];
 
   return (
